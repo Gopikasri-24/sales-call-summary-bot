@@ -11,3 +11,8 @@ sales_bot.db
 
 # Ignore Mac OS hidden files (if any)
 .DS_Store
+
+# Ignore Audio and Uploads
+backend/uploads/
+*.mp3
+*.wav
