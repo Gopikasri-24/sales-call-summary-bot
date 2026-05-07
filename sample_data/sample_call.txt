@@ -1,0 +1,7 @@
+Customer: Hi, I am interested in your CRM software.
+Salesperson: Sure, our CRM helps manage leads, customers, and sales follow-ups.
+Customer: Can you send me the pricing details?
+Salesperson: Yes, I will send the pricing details today.
+Customer: Also, can we schedule a demo next Monday?
+Salesperson: Definitely, I will schedule a demo for next Monday.
+Customer: Thank you, I will discuss with my team.

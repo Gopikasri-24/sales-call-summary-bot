@@ -1,0 +1,21 @@
+SALES CALL SUMMARY REPORT
+========================================
+
+SUMMARY:
+Sales call summary: Customer: Hello, I heard about your AI chatbot solution and wanted to know more. Salesperson: Sure, our AI chatbot automates customer support, lead generation, and appointment booking. Customer: Interesting. Can it integrate with websites and WhatsApp?
+
+SENTIMENT:
+POSITIVE
+
+ACTION ITEMS:
+1. Schedule a product demo.
+
+ORIGINAL TRANSCRIPT:
+
+Customer: Hello, I heard about your AI chatbot solution and wanted to know more.
+Salesperson: Sure, our AI chatbot automates customer support, lead generation, and appointment booking.
+Customer: Interesting. Can it integrate with websites and WhatsApp?
+Salesperson: Yes, it can integrate with websites, WhatsApp, and social media platforms.
+Customer: Great. Could you send a product brochure and arrange a quick demo?
+Salesperson: Definitely, I will send the brochure and schedule a demo tomorrow.
+Customer: Perfect, I look forward to it.
