@@ -16,7 +16,6 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .stApp { background-color: #0B0F19 !important; background-image: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05) 0%, transparent 40%), radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.05) 0%, transparent 40%); color: #F3F4F6 !important; }
 section[data-testid="stSidebar"] { background-color: #111827 !important; border-right: 1px solid rgba(255,255,255,0.03); }
 
-/* Removed the header hiding so you can see the loading spinner! */
 #MainMenu {visibility: hidden;} 
 header {background: transparent !important;}
 
@@ -49,15 +48,15 @@ with st.sidebar:
     st.markdown("<p style='color:#6B7280; font-size:11px; font-weight:700; letter-spacing:1.5px; margin-top:25px; margin-bottom:15px;'>CALL HISTORY</p>", unsafe_allow_html=True)
     
     try:
-        # Added a 2-second timeout so it doesn't freeze the screen!
         history_response = requests.get(f"{API_URL}/history", timeout=2)
         if history_response.status_code == 200 and history_response.json():
             for item in history_response.json():
-                border_color = "#10B981" if "POSITIVE" in item['sentiment'] else "#EF4444"
+                sentiment_text = item.get('sentiment', 'UNKNOWN')
+                border_color = "#10B981" if "POSITIVE" in sentiment_text.upper() else "#EF4444"
                 st.markdown(f"""
-                <div style='background: #1F2937; border-left: 4px solid {border_color}; padding: 12px; border-radius: 8px; margin-bottom: 12px; transition: 0.2s; cursor: pointer;' onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#1F2937'">
-                    <div style='color: #F3F4F6; font-size: 14px; font-weight: 600;'>📞 Call #{item['id']}</div>
-                    <div style='color: #9CA3AF; font-size: 12px; margin-top: 6px; font-weight: 500;'>{item['sentiment']}</div>
+                <div style='background: #1F2937; border-left: 4px solid {border_color}; padding: 12px; border-radius: 8px; margin-bottom: 12px;'>
+                    <div style='color: #F3F4F6; font-size: 14px; font-weight: 600;'>📞 Call #{item.get('id', '?')}</div>
+                    <div style='color: #9CA3AF; font-size: 12px; margin-top: 6px; font-weight: 500;'>{sentiment_text}</div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -66,16 +65,6 @@ with st.sidebar:
         st.warning("⏳ Backend is starting up. Please refresh the page in 30 seconds.")
     except Exception:
         st.error("Backend offline. Ensure FastAPI is running.")
-        
-    st.write("") 
-    
-    st.markdown("""
-    <div style='background: linear-gradient(180deg, #1F2937 0%, #111827 100%); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-top: 30px;'>
-        <div style='color: white; font-weight: 700; font-size: 15px;'>💎 Unlock Premium</div>
-        <div style='color: #9CA3AF; font-size: 12px; margin-top: 8px; line-height: 1.5;'>Get deeper analysis, advanced reports and export transcripts.</div>
-        <button style='background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%); border: none; color: white; padding: 10px 15px; border-radius: 8px; font-size: 13px; font-weight: 600; width: 100%; margin-top: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(236,72,153,0.3);'>Upgrade Now</button>
-    </div>
-    """, unsafe_allow_html=True)
 
 # ==========================================
 # MAIN HEADER
@@ -89,7 +78,7 @@ with col_user:
     <div style='display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 5px; padding: 8px 16px; background: #111827; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05);'>
         <div>
             <div style='color: white; font-size: 13px; font-weight: 600; text-align: right;'>User</div>
-            <div style='color: #EC4899; font-size: 11px; font-weight: 500;'>Premium Plan</div>
+            <div style='color: #EC4899; font-size: 11px; font-weight: 500;'>Workspace Account</div>
         </div>
         <div style='background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%); color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;'>U</div>
     </div>
@@ -111,40 +100,54 @@ with col_input:
     if use_audio:
         audio_file = st.file_uploader("Upload Audio (WAV/MP3)", type=["wav", "mp3"])
         if st.button("✨ Process Audio", type="primary", use_container_width=True) and audio_file:
-            st.info("⏳ Processing audio in background chunks... Please wait.") 
+            st.info("⏳ Processing audio. Please wait...") 
             with st.spinner("AI is analyzing the call..."):
                 files = {"file": (audio_file.name, audio_file.getvalue(), audio_file.type)}
-                res = requests.post(f"{API_URL}/process_audio", files=files)
-                if res.status_code == 200:
-                    result_data = res.json()
-                elif res.status_code == 400:
-                    st.error(res.json().get("detail", "Invalid Audio File"))
-                else:
-                    st.error("Error processing audio.")
+                try:
+                    res = requests.post(f"{API_URL}/process_audio", files=files)
+                    if res.status_code == 200:
+                        result_data = res.json()
+                    elif res.status_code == 400:
+                        st.error(res.json().get("detail", "Invalid Audio File"))
+                    else:
+                        st.error("Error processing audio.")
+                except Exception as e:
+                    st.error(f"Could not connect to server: {e}")
     else:
         text_input = st.text_area("Paste Transcript:", height=250, placeholder="Customer: Hello, I want to buy...\nSales: Sure, I will send the price.")
         if st.button("✨ Analyze Transcript", type="primary", use_container_width=True) and text_input:
             with st.spinner("AI is analyzing text..."):
-                res = requests.post(f"{API_URL}/process_text", json={"text": text_input})
-                if res.status_code == 200:
-                    result_data = res.json()
-                elif res.status_code == 400:
-                    st.error(res.json().get("detail", "Text too short."))
-                else:
-                    st.error("Error processing text.")
+                try:
+                    res = requests.post(f"{API_URL}/process_text", json={"text": text_input})
+                    if res.status_code == 200:
+                        result_data = res.json()
+                    elif res.status_code == 400:
+                        st.error(res.json().get("detail", "Text too short."))
+                    else:
+                        st.error("Error processing text.")
+                except Exception as e:
+                    st.error(f"Could not connect to server: {e}")
 
 with col_output:
     st.markdown("<h4 style='color:#F3F4F6; margin-bottom:15px; font-weight:600; font-size: 18px;'>📊 Analysis Dashboard</h4>", unsafe_allow_html=True)
     
     if result_data:
-        sentiment_label = result_data["sentiment"].split("(")[0].strip()
-        sentiment_score = result_data["sentiment"].split("(")[1].replace(")", "")
-        task_count = len(result_data["action_items"])
+        raw_sentiment = result_data.get("sentiment", "NEUTRAL (100%)")
+        if "(" in raw_sentiment:
+            sentiment_label = raw_sentiment.split("(")[0].strip()
+            sentiment_score = raw_sentiment.split("(")[1].replace(")", "")
+        else:
+            sentiment_label = raw_sentiment
+            sentiment_score = "100%"
+
+        action_items = result_data.get("action_items", [])
+        customer_needs = result_data.get("customer_needs", ["No explicit customer needs detected."])
+        task_count = len(action_items)
         
         m1, m2, m3 = st.columns(3)
         with m1:
-            color = "#10B981" if "POSITIVE" in sentiment_label else "#EF4444"
-            bg_color = "16,185,129" if "POSITIVE" in sentiment_label else "239,68,68"
+            color = "#10B981" if "POSITIVE" in sentiment_label.upper() else "#EF4444"
+            bg_color = "16,185,129" if "POSITIVE" in sentiment_label.upper() else "239,68,68"
             st.markdown(f"""
             <div class='custom-card'>
                 <div class='card-title'>Overall Sentiment</div>
@@ -177,41 +180,41 @@ with col_output:
         tab1, tab2, tab3, tab4 = st.tabs(["✨ AI Summary", "🎯 Customer Needs", "☑️ Action Items", "📄 Transcript"])
         
         with tab1:
-            st.markdown(f"<div style='background:#111827; padding:24px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); color:#E5E7EB; line-height: 1.6; font-size: 15px;'>{result_data['summary']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background:#111827; padding:24px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); color:#E5E7EB; line-height: 1.6; font-size: 15px;'>{result_data.get('summary', 'No summary available.')}</div>", unsafe_allow_html=True)
             
         with tab2:
-            for need in result_data["customer_needs"]:
+            for need in customer_needs:
                 st.markdown(f"<div style='background:#111827; padding:16px 20px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); margin-bottom:10px; color:#E5E7EB; display:flex; align-items:center; gap:12px;'><span style='color:#3B82F6; font-size:18px;'>🎯</span> {need}</div>", unsafe_allow_html=True)
 
         with tab3:
-            for item in result_data["action_items"]:
+            for item in action_items:
                 st.markdown(f"<div style='background:#111827; padding:16px 20px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); margin-bottom:10px; color:#E5E7EB; display:flex; align-items:center; gap:12px;'><span style='color:#8B5CF6; font-size:18px;'>☑️</span> {item}</div>", unsafe_allow_html=True)
                 
         with tab4:
-            st.text_area("Source Text", result_data["transcript"], height=200, disabled=True)
+            st.text_area("Source Text", result_data.get("transcript", ""), height=200, disabled=True)
             
         st.write("")
         
-        needs_text = "\n".join([f"- {item}" for item in result_data['customer_needs']])
-        action_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(result_data['action_items'])])
+        needs_text = "\n".join([f"- {item}" for item in customer_needs])
+        action_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(action_items)])
         
         report_content = f"""SALES CALL SUMMARY REPORT
 ========================================
 
-SENTIMENT: {result_data['sentiment']}
+SENTIMENT: {raw_sentiment}
 
 OVERALL CUSTOMER NEEDS:
 {needs_text}
 
 AI SUMMARY:
-{result_data['summary']}
+{result_data.get('summary', '')}
 
 ACTION ITEMS:
 {action_text}
 
 ----------------------------------------
 ORIGINAL TRANSCRIPT:
-{result_data['transcript']}"""
+{result_data.get('transcript', '')}"""
 
         st.download_button("📥 Download Professional Report (.txt)", data=report_content, file_name="sales_report.txt", mime="text/plain", use_container_width=True)
         
@@ -231,13 +234,11 @@ if result_data:
     st.write("---")
     st.markdown("<h4 style='color:#F3F4F6; margin-bottom:20px; font-weight:600; font-size: 18px;'>🎯 Conversation Insights</h4>", unsafe_allow_html=True)
     
-    demo_duration = f"{random.randint(2, 8)}m {random.randint(10, 59)}s"
-    demo_talk = f"{random.randint(1, 4)}m {random.randint(10, 59)}s"
-    word_count = len(result_data["transcript"].split())
+    word_count = len(result_data.get("transcript", "").split())
     
-    s_color = "#10B981" if "POSITIVE" in sentiment_label else "#EF4444"
-    s_bg = "16, 185, 129" if "POSITIVE" in sentiment_label else "239, 68, 68"
-    s_icon = "😊" if "POSITIVE" in sentiment_label else "⚠️"
+    s_color = "#10B981" if "POSITIVE" in sentiment_label.upper() else "#EF4444"
+    s_bg = "16, 185, 129" if "POSITIVE" in sentiment_label.upper() else "239, 68, 68"
+    s_icon = "😊" if "POSITIVE" in sentiment_label.upper() else "⚠️"
 
     i1, i2, i3, i4, i5 = st.columns(5)
     
