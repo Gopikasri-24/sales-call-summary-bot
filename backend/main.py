@@ -195,7 +195,7 @@ async def process_text(input_data: TextInput):
             detail="Audio rejected: No valid speech detected."
         )
 
-    # Dynamically load model contexts safely
+    # Load models dynamically when needed
     local_sum_model, local_sum_tokenizer = get_summarizer()
     local_sentiment_analyzer = get_sentiment()
 
@@ -286,17 +286,17 @@ async def process_text(input_data: TextInput):
 @app.post("/process_audio")
 async def process_audio(file: UploadFile = File(...)):
     try:
-        # Save uploaded audio file using utility
+        # Save uploaded audio
         file_path = audio_utils.save_uploaded_file(file)
 
-        # Lazy load context for speech-to-text pipeline
-        local_transcriber = get_transcriber()
+        # Load Whisper only when needed
+        transcriber = get_transcriber()
 
-        # Transcribe audio file to text
-        result = local_transcriber(file_path)
+        # Transcribe audio
+        result = transcriber(file_path)
         transcript = result["text"]
 
-        # Clean up temporary disk files safely
+        # Delete temporary file
         if os.path.exists(file_path):
             os.remove(file_path)
 
@@ -306,7 +306,7 @@ async def process_audio(file: UploadFile = File(...)):
             detail=f"Audio processing failed: {str(e)}"
         )
 
-    # Route straight into the existing text execution block
+    # Reuse text processing logic
     return await process_text(TextInput(text=transcript))
 
 
@@ -317,12 +317,14 @@ async def process_audio(file: UploadFile = File(...)):
 async def get_history():
     conn = sqlite3.connect("sales_bot.db")
     cursor = conn.cursor()
+
     cursor.execute("""
         SELECT id, summary, sentiment
         FROM history
         ORDER BY id DESC
         LIMIT 5
     """)
+
     rows = cursor.fetchall()
     conn.close()
 
