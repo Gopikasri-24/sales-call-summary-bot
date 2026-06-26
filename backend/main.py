@@ -195,11 +195,11 @@ async def process_text(input_data: TextInput):
             detail="Audio rejected: No valid speech detected."
         )
 
-    # Load models dynamically when needed
+    # Dynamically load model contexts safely
     local_sum_model, local_sum_tokenizer = get_summarizer()
     local_sentiment_analyzer = get_sentiment()
 
-    # Summarization processing
+    # Summarization
     inputs = local_sum_tokenizer(
         text,
         return_tensors="pt",
@@ -224,7 +224,7 @@ async def process_text(input_data: TextInput):
         skip_special_tokens=True
     )
 
-    # Sentiment Analysis processing
+    # Sentiment Analysis
     chunk_size = 400
     chunks = [
         " ".join(words[i:i + chunk_size])
@@ -286,17 +286,17 @@ async def process_text(input_data: TextInput):
 @app.post("/process_audio")
 async def process_audio(file: UploadFile = File(...)):
     try:
-        # Save uploaded audio
+        # Save uploaded audio file using utility
         file_path = audio_utils.save_uploaded_file(file)
 
-        # Load Whisper dynamically when needed
+        # Lazy load context for speech-to-text pipeline
         local_transcriber = get_transcriber()
 
-        # Transcribe audio
+        # Transcribe audio file to text
         result = local_transcriber(file_path)
         transcript = result["text"]
 
-        # Delete temporary file safely
+        # Clean up temporary disk files safely
         if os.path.exists(file_path):
             os.remove(file_path)
 
@@ -306,7 +306,7 @@ async def process_audio(file: UploadFile = File(...)):
             detail=f"Audio processing failed: {str(e)}"
         )
 
-    # Reuse text processing logic
+    # Route straight into the existing text execution block
     return await process_text(TextInput(text=transcript))
 
 
